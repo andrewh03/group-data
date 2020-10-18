@@ -1,0 +1,260 @@
+1. Data input
+```{r}
+library(tidyverse)
+library(survey)
+raw_data <- read.csv("/Users/hyp/Desktop/2014 victimization.csv", header = T)
+```
+
+```{r}
+str(raw_data)
+```
+
+2. Data cleaning
+```{r}
+cleaned_data <- raw_data %>% 
+  select(totvic, 
+         agegr10,
+         ncp_10, 
+         sfc_10, 
+         sfc_30, 
+         sfc_40,  
+         whw_120,
+         whw_230,
+         nsc_10,
+         nsc_20,
+         nsc_30,
+         nsc_50,
+         peo_110,
+         peo_130,
+         peo_180,
+         srh_115,
+         numvactc) %>% 
+  rename(num_victimization = totvic,
+         age_group = agegr10, 
+         neighbours_contacted_police_criminal_behaviour = ncp_10,
+         crime_safety_carry_sth_defend = sfc_10,
+         crime_safety_plan_safe_route = sfc_30,
+         crime_safety_stayhome_night = sfc_40,
+         num_hours_worked_per_week = whw_120,
+         work_schedule_at_main_job = whw_230,
+         neighbourhood_lower_higher_crime = nsc_10,
+         neighbourhood_increase_decrease_crime = nsc_20,
+         feeling_safety_walk_alone_night = nsc_30,
+         feeling_safety_walk_alone_night_moreoften = nsc_50,
+         ea_work_class_volunteer = peo_110,
+         ea_bar_clubs_pub = peo_130,
+         ea_other = peo_180,
+         self_rated_mental_health = srh_115,
+         ea_per_month = numvactc)
+
+cleaned_data <- cleaned_data %>% 
+  mutate(be_victimized = ifelse(num_victimization == 0, 0, 1)) %>%
+  mutate(age_group = case_when(
+    age_group == 1~"15_to_24",
+    age_group == 2~"25_to_34",
+    age_group == 3~"35_to_44",
+    age_group == 4~"45_to_54",
+    age_group == 5~"55_to_64",
+    age_group == 6~"65_to_74",
+    age_group == 7~"over_75"))
+```
+
+* below are codes mutating variable values to convert numbers into more meaningful labels.
+```{r}
+cleaned_data <- cleaned_data %>% 
+  mutate(neighbours_contacted_police_criminal_behaviour = case_when(
+    neighbours_contacted_police_criminal_behaviour == 1~"very likely",
+    neighbours_contacted_police_criminal_behaviour == 2~"somewhat likely",
+    neighbours_contacted_police_criminal_behaviour == 3~"somewhat unlikely",
+    neighbours_contacted_police_criminal_behaviour == 4~"not at all likely",
+    neighbours_contacted_police_criminal_behaviour == 5~"just moved into the area"
+  )) %>% 
+  mutate(crime_safety_carry_sth_defend = case_when(
+    crime_safety_carry_sth_defend == 1~ "Yes",
+    crime_safety_carry_sth_defend == 2~ "No"
+  )) %>% 
+  mutate(crime_safety_plan_safe_route = case_when(
+    crime_safety_plan_safe_route == 1~ "Yes",
+    crime_safety_plan_safe_route == 2~ "No"
+  )) %>% 
+    mutate(crime_safety_stayhome_night = case_when(
+    crime_safety_stayhome_night == 1~ "Yes",
+    crime_safety_stayhome_night == 2~ "No"
+  )) %>% 
+  mutate(num_hours_worked_per_week = ifelse(num_hours_worked_per_week > 200, NA, num_hours_worked_per_week))
+
+cleaned_data <- cleaned_data %>% 
+  mutate(work_schedule_at_main_job = case_when(
+    work_schedule_at_main_job == 1~"A regular daytime schedule or shift",
+    work_schedule_at_main_job == 2~"A regular evening shift",
+    work_schedule_at_main_job == 3~"A regular night shift",
+    work_schedule_at_main_job == 4~"A rotating shift",     
+    work_schedule_at_main_job == 5~"A split shift",     
+    work_schedule_at_main_job == 6~"A compressed work week",
+    work_schedule_at_main_job == 7~"On call or casual",
+    work_schedule_at_main_job == 8~"An irregular schedule",
+    work_schedule_at_main_job == 9~"Other"         
+  ))
+
+cleaned_data <- cleaned_data %>% 
+  mutate(neighbourhood_lower_higher_crime = case_when(
+  neighbourhood_lower_higher_crime == 1~ "higher",
+  neighbourhood_lower_higher_crime == 2~ "about the same",
+  neighbourhood_lower_higher_crime == 3~ "lower"
+  ))
+
+cleaned_data <- cleaned_data %>% 
+  mutate(neighbourhood_increase_decrease_crime = case_when(
+  neighbourhood_increase_decrease_crime == 1~ "increased",
+  neighbourhood_increase_decrease_crime == 2~ "decreased",
+  neighbourhood_increase_decrease_crime == 3~ "about the same",
+  neighbourhood_increase_decrease_crime == 4~ "just moved"
+  ))
+
+cleaned_data <- cleaned_data %>% 
+  mutate(feeling_safety_walk_alone_night = case_when(
+  feeling_safety_walk_alone_night == 1~ "very safe",
+  feeling_safety_walk_alone_night == 2~ "reasonably safe",
+  feeling_safety_walk_alone_night == 3~ "somewhat unsafe",
+  feeling_safety_walk_alone_night == 4~ "very unsafe",
+  feeling_safety_walk_alone_night == 5~ "do not walk alone"
+  ))
+
+cleaned_data <- cleaned_data %>% 
+  mutate(feeling_safety_walk_alone_night_moreoften = case_when(
+  feeling_safety_walk_alone_night_moreoften == 1~ "Yes",
+  feeling_safety_walk_alone_night_moreoften == 2~ "No"
+  ))
+
+cleaned_data <- cleaned_data %>% 
+  mutate(ea_work_class_volunteer = ifelse(ea_work_class_volunteer > 95, NA, ea_work_class_volunteer))
+
+cleaned_data <- cleaned_data %>% 
+  mutate(ea_bar_clubs_pub = ifelse(ea_bar_clubs_pub > 95, NA, ea_bar_clubs_pub))
+
+cleaned_data <- cleaned_data %>% 
+  mutate(ea_other = ifelse(ea_other > 95, NA, ea_other))
+
+cleaned_data <- cleaned_data %>% 
+  mutate(ea_per_month = ifelse(ea_per_month > 95, NA, ea_per_month))
+
+cleaned_data <-cleaned_data %>%
+  mutate(self_rated_mental_health = case_when(
+    self_rated_mental_health == 1 ~ "Excellent",
+    self_rated_mental_health == 2 ~ "Very good",
+    self_rated_mental_health == 3 ~ "Good",
+    self_rated_mental_health == 4 ~"Fair",
+    self_rated_mental_health == 5 ~ "Poor"))
+
+cleaned_data <- cleaned_data %>% 
+    mutate(be_victimized_factor = case_when(
+    be_victimized == 1~ "Yes",
+    be_victimized == 0~ "No"
+  ))
+
+str(cleaned_data)
+```
+
+3. Model
+```{r,include=FALSE}
+test2_data <- cleaned_data %>% 
+  filter(!is.na(be_victimized)) %>%
+  filter(!is.na(age_group)) %>%
+  filter(!is.na(num_hours_worked_per_week)) %>%
+  filter(!is.na(ea_per_month)) %>% 
+  filter(!is.na(self_rated_mental_health)) %>% 
+  filter(!is.na(crime_safety_carry_sth_defend)) %>% 
+  filter(!is.na(feeling_safety_walk_alone_night_moreoften)) %>% 
+  filter(!is.na(crime_safety_plan_safe_route)) %>% 
+  filter(!is.na(neighbourhood_lower_higher_crime))
+```
+
+4. final model population
+```{r}
+n = length(test2_data$be_victimized)
+N = 35423701
+fpc.scs = rep(N,n)
+data.design <- svydesign(id=~1,data = test2_data, fpc= fpc.scs)
+
+mymodel <- svyglm(be_victimized ~ ea_per_month + num_hours_worked_per_week +
+                    as.factor(crime_safety_carry_sth_defend)+
+                    as.factor(age_group) + as.factor(self_rated_mental_health), 
+                  data.design,family = "binomial")
+
+summary(mymodel)
+```
+
+```{r}
+Coefficient <- c("Intercept", "ea_per_month", "num_hours_worked_per_week","as.factor(crime_safety_carry_sth_defend)Yes", "as.factor(age_group)25_to_34", "as.factor(age_group)35_to_44", "as.factor(age_group)45_to_54", "as.factor(age_group)55_to_64", "as.factor(age_group)65_to_74", "as.factor(age_group)over_75", "as.factor(self_rated_mental_health)Fair", "as.factor(self_rated_mental_health)Good ", "as.factor(self_rated_mental_health)Poor", "as.factor(self_rated_mental_health)Very good")
+Estimate <- c(-1.765497, 0.022619, 0.007836, 0.692114, -0.094625, -0.262722, -0.516509, -0.674416, -1.008986, -0.650995, 0.896911, 0.228197, 1.282224, 0.146291)
+P_value <- c("< 2e-16", "< 2e-16", "3.84e-06", "< 2e-16", "0.236180", "0.000861", "1.57e-10", "1.47e-15", "7.07e-13", "0.103207", "< 2e-16", "0.000303", "2.67e-06", "0.010159")
+
+summary_table <- data.frame(Coefficient, Estimate, P_value)
+summary_table
+```
+
+ model 2 goodness check with ROC curve
+```{r}
+library(pROC)
+p <- predict(mymodel, type = "response")
+roc_logit <- roc(test2_data$be_victimized ~ p)
+TPR <- roc_logit$sensitivities
+FPR <- 1 - roc_logit$specificities
+
+plot(FPR, TPR, xlim = c(0,1), ylim = c(0,1), type = 'l', lty = 1, lwd = 2, col = 'red', bty = 'n', main = "Graph 1")
+abline(a = 0, b = 1, lty = 2, col = 'blue')
+text(0.7, 0.4, label = paste('AUC = ', round(auc(roc_logit), 2)))
+```
+
+```{r}
+ag_prop <- test2_data %>% 
+  group_by(age_group) %>% 
+  summarise(proportion = mean(be_victimized))
+ag_prop
+
+figure_1 <- ggplot(test2_data, aes(age_group, fill = be_victimized_factor)) + labs(x= "Figure 1. age_group", y="Count", title = "Barplot of Relationship Between age_group and be_victimized") + geom_bar()
+```
+
+```{r}
+srmh_proportion <- test2_data %>% 
+  group_by(self_rated_mental_health) %>% 
+  summarise(proportion = mean(be_victimized))
+srmh_proportion
+
+figure_2 <- ggplot(test2_data, aes(self_rated_mental_health, fill = be_victimized_factor)) + labs(x= "Figure 2. self_rated_mental_health", y="Count", title = "Barplot of Relationship Between self_rated_mental_health and be_victimized") + geom_bar()
+```
+
+```{r}
+cscsd_prop <- test2_data %>% 
+  group_by(crime_safety_carry_sth_defend) %>% 
+  summarise(proportion = mean(be_victimized))
+cscsd_prop
+
+figure_3 <- ggplot(test2_data, aes(crime_safety_carry_sth_defend, fill = be_victimized_factor)) + labs(x= "Figure 3. crime_safety_carry_sth_defend", y="Count", title = "Barplot of Relationship Between crime_safety_carry_sth_defend and be_victimized") + geom_bar()
+```
+
+```{r}
+epm_prop <- test2_data %>% 
+  group_by(ea_per_month) %>% 
+  summarise(proportion = mean(be_victimized))
+epm_prop
+
+figure_4 <- ggplot(test2_data, aes(ea_per_month, fill = be_victimized_factor)) + labs(x= "Figure 4. ea_per_month", y="Count", title = "Barplot of Relationship Between ea_per_month and be_victimized") + geom_bar()
+```
+
+```{r}
+nhwpw_prop <- test2_data %>% 
+  group_by(num_hours_worked_per_week) %>% 
+  summarise(proportion = mean(be_victimized))
+nhwpw_prop
+
+figure_5 <- ggplot(test2_data, aes(num_hours_worked_per_week, fill = be_victimized_factor)) + labs(x= "Figure 5. num_hours_worked_per_week", y ="Count", title = "Barplot of Relationship Between num_hours_worked_per_week and be_victimized") + geom_histogram(bins = 20)
+```
+
+```{r}
+figure_1
+figure_2
+figure_3
+figure_4
+figure_5
+```
